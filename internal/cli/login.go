@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/pathops/pathops-cli/internal/api"
 	"github.com/pathops/pathops-cli/internal/auth"
@@ -35,7 +37,10 @@ func newLoginCmd() *cobra.Command {
 				AccessToken:  result.AccessToken,
 				RefreshToken: result.RefreshToken,
 				IDToken:      result.IDToken,
-				TokenType:    "Bearer",
+				TokenType:    result.TokenType,
+				Expiry:       result.Expiry,
+				Issuer:       profile.Issuer,
+				ClientID:     profile.ClientID,
 			}); err != nil {
 				return err
 			}
@@ -53,13 +58,53 @@ func newLoginCmd() *cobra.Command {
 			)
 
 			if loginResp.Data.RequiresTokenRefresh {
-				fmt.Println("Token refresh required.")
+				fmt.Println("Refreshing token because tenant context changed...")
+
+				if result.RefreshToken == "" {
+					return fmt.Errorf("control plane requested token refresh, but no refresh token was returned")
+				}
+
+				refreshed, err := auth.RefreshToken(
+					context.Background(),
+					profile.Issuer,
+					profile.ClientID,
+					result.RefreshToken,
+				)
+				if err != nil {
+					return fmt.Errorf("refresh after login failed: %w", err)
+				}
+
+				if err := auth.SaveTokens(auth.Tokens{
+					AccessToken:  refreshed.AccessToken,
+					RefreshToken: chooseRefreshToken(refreshed.RefreshToken, result.RefreshToken),
+					IDToken:      refreshed.IDToken,
+					TokenType:    refreshed.TokenType,
+					Expiry:       refreshed.Expiry,
+					Issuer:       profile.Issuer,
+					ClientID:     profile.ClientID,
+				}); err != nil {
+					return err
+				}
+
+				fmt.Println("Token refreshed successfully.")
 			}
+
 			if loginResp.Data.RequiresToolRelogin {
-				fmt.Println("Tool relogin required.")
+				fmt.Println("Some tools may require a new login to pick up tenant changes.")
 			}
 
 			return nil
 		},
 	}
+}
+
+func chooseRefreshToken(newValue, oldValue string) string {
+	if newValue != "" {
+		return newValue
+	}
+	return oldValue
+}
+
+func needsRefresh(t auth.Tokens) bool {
+	return auth.IsAccessTokenExpired(t, 30*time.Second)
 }

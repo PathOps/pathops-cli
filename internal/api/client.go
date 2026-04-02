@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -24,7 +23,11 @@ func New(baseURL string) *Client {
 }
 
 func (c *Client) PublicLogin(accessToken string) (*LoginResponse, error) {
-	req, err := http.NewRequest(http.MethodPost, c.BaseURL+"/public/login", bytes.NewBuffer(nil))
+	req, err := http.NewRequest(
+		http.MethodPost,
+		c.BaseURL+"/api/public/login",
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -5,13 +5,17 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type Tokens struct {
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	IDToken      string `json:"idToken"`
-	TokenType    string `json:"tokenType"`
+	AccessToken  string    `json:"accessToken"`
+	RefreshToken string    `json:"refreshToken"`
+	IDToken      string    `json:"idToken"`
+	TokenType    string    `json:"tokenType"`
+	Expiry       time.Time `json:"expiry"`
+	Issuer       string    `json:"issuer"`
+	ClientID     string    `json:"clientId"`
 }
 
 func tokenPath() (string, error) {
@@ -73,4 +77,11 @@ func LoadAccessToken() (string, error) {
 		return "", errors.New("missing access token")
 	}
 	return t.AccessToken, nil
+}
+
+func IsAccessTokenExpired(t Tokens, skew time.Duration) bool {
+	if t.Expiry.IsZero() {
+		return false
+	}
+	return time.Now().Add(skew).After(t.Expiry)
 }
