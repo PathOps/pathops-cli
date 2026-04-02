@@ -21,3 +21,11 @@ type WhoAmI struct {
 	BaseURL   string `json:"baseUrl"`
 	HasTokens bool   `json:"hasTokens"`
 }
+
+type PublicAuthConfig struct {
+	ControlPlaneBaseURL string   `json:"controlPlaneBaseUrl"`
+	Issuer              string   `json:"issuer"`
+	ClientID            string   `json:"clientId"`
+	Scopes              []string `json:"scopes"`
+	LoginPath           string   `json:"loginPath"`
+}

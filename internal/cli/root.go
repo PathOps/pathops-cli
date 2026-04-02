@@ -11,6 +11,7 @@ func NewRootCmd() *cobra.Command {
 
 	cmd.AddCommand(newVersionCmd())
 	cmd.AddCommand(newLoginCmd())
+	cmd.AddCommand(newLogoutCmd())
 	cmd.AddCommand(newWhoamiCmd())
 
 	return cmd

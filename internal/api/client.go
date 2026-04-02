@@ -51,3 +51,31 @@ func (c *Client) PublicLogin(accessToken string) (*LoginResponse, error) {
 
 	return &out, nil
 }
+
+func (c *Client) GetPublicAuthConfig() (*PublicAuthConfig, error) {
+	req, err := http.NewRequest(
+		http.MethodGet,
+		c.BaseURL+"/api/public/auth/config",
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("public auth config failed: status=%d", resp.StatusCode)
+	}
+
+	var out PublicAuthConfig
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}

@@ -85,3 +85,24 @@ func IsAccessTokenExpired(t Tokens, skew time.Duration) bool {
 	}
 	return time.Now().Add(skew).After(t.Expiry)
 }
+
+func DeleteTokens() error {
+	path, err := tokenPath()
+	if err != nil {
+		return err
+	}
+
+	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+
+	return nil
+}
+
+func HasRefreshToken() bool {
+	t, err := LoadTokens()
+	if err != nil {
+		return false
+	}
+	return t.RefreshToken != ""
+}

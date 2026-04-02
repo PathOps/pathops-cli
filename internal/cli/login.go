@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pathops/pathops-cli/internal/api"
 	"github.com/pathops/pathops-cli/internal/auth"
@@ -12,7 +11,9 @@ import (
 )
 
 func newLoginCmd() *cobra.Command {
-	return &cobra.Command{
+	var controlPlaneURL string
+
+	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Authenticate with PathOps",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -21,9 +22,35 @@ func newLoginCmd() *cobra.Command {
 				return err
 			}
 
-			profile, err := config.Active(cfg)
-			if err != nil {
-				return err
+			var profile config.Profile
+
+			if controlPlaneURL != "" {
+				client := api.New(controlPlaneURL)
+
+				authCfg, err := client.GetPublicAuthConfig()
+				if err != nil {
+					return err
+				}
+
+				profile = config.Profile{
+					ControlPlaneBaseURL: authCfg.ControlPlaneBaseURL,
+					Issuer:              authCfg.Issuer,
+					ClientID:            authCfg.ClientID,
+				}
+
+				if err := config.SaveActiveProfile(cfg, profile); err != nil {
+					return err
+				}
+			} else {
+				var err error
+				profile, err = config.Active(cfg)
+				if err != nil {
+					return err
+				}
+			}
+
+			if profile.ControlPlaneBaseURL == "" || profile.Issuer == "" || profile.ClientID == "" {
+				return fmt.Errorf("missing profile configuration; run: pathops login --control-plane <url>")
 			}
 
 			fmt.Printf("Starting login against %s\n", profile.Issuer)
@@ -96,15 +123,7 @@ func newLoginCmd() *cobra.Command {
 			return nil
 		},
 	}
-}
 
-func chooseRefreshToken(newValue, oldValue string) string {
-	if newValue != "" {
-		return newValue
-	}
-	return oldValue
-}
-
-func needsRefresh(t auth.Tokens) bool {
-	return auth.IsAccessTokenExpired(t, 30*time.Second)
+	cmd.Flags().StringVar(&controlPlaneURL, "control-plane", "", "PathOps Control Plane base URL")
+	return cmd
 }

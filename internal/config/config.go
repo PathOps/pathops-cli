@@ -23,11 +23,7 @@ func DefaultConfig() Config {
 	return Config{
 		ActiveProfile: "default",
 		Profiles: map[string]Profile{
-			"default": {
-				ControlPlaneBaseURL: "https://control-plane.demo.pathops.io",
-				Issuer:              "https://keycloak.demo.pathops.io/realms/pathops",
-				ClientID:            "control-plane-public",
-			},
+			"default": {},
 		},
 	}
 }
@@ -110,4 +106,19 @@ func Active(cfg Config) (Profile, error) {
 
 func OSName() string {
 	return runtime.GOOS
+}
+
+func SaveActiveProfile(cfg Config, profile Profile) error {
+	if cfg.Profiles == nil {
+		cfg.Profiles = map[string]Profile{}
+	}
+
+	active := cfg.ActiveProfile
+	if active == "" {
+		active = "default"
+		cfg.ActiveProfile = active
+	}
+
+	cfg.Profiles[active] = profile
+	return Save(cfg)
 }
